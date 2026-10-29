@@ -18,6 +18,11 @@ private:
     uint16_t fetchWord();
     uint8_t getReg8(uint8_t index);
     void setReg8(uint8_t index, uint8_t value);
+    bool ime = false;
+    void push(uint16_t value);
+    uint16_t pop();
+    void alu(uint8_t op, uint8_t value);
+    bool condition(uint8_t cc);
 };
 
 

@@ -54,8 +54,45 @@ void CPU::step() {
         return;
     }
 
+    if (opcode >= 0x80 && opcode <= 0xBF) {
+        uint8_t op = (opcode >> 3) & 0x07;
+        uint8_t src = opcode & 0x07;
+        alu(op, getReg8(src));
+        return;
+    }
 
+    if ((opcode & 0xC7) == 0xC6) {
+        uint8_t op = (opcode >> 3) & 0x07;
+        alu(op, fetchByte());
+        return;
+    }
 
+    if ((opcode & 0xE7) == 0xC4) {
+        uint8_t cc = (opcode >> 3) & 0x03;
+        uint16_t address = fetchWord();
+        if (condition(cc)) {
+            push(regs.pc);
+            regs.pc = address;
+        }
+        return;
+    }
+
+    if ((opcode & 0xE7) == 0xC2) {
+        uint8_t cc = (opcode >> 3) & 0x03;
+        uint16_t address = fetchWord();
+        if (condition(cc)) {
+            regs.pc = address;
+        }
+        return;
+    }
+
+    if ((opcode & 0xE7) == 0xC0) {
+        uint8_t cc = (opcode >> 3) & 0x03;
+        if (condition(cc)) {
+            regs.pc = pop();
+        }
+        return;
+    }
     switch (opcode) {
         case 0x00: {
             break;
@@ -149,6 +186,112 @@ void CPU::step() {
             }
             break;
         }
+        case 0xF3: {
+            ime = false;
+            break;
+        }
+        case 0xFB: {
+            ime = true;
+            break;
+        }
+        case 0xEA: {
+            memory.write(fetchWord(), regs.a);
+            break;
+        }
+        case 0xE0: {
+            memory.write(0xFF00 + fetchByte(), regs.a);
+            break;
+        }
+        case 0xE2: {
+            memory.write(0xFF00 + regs.c, regs.a);
+            break;
+        }
+        case 0xFA: {
+            regs.a = memory.read(fetchWord());
+            break;
+        }
+        case 0xF0: {
+            regs.a = memory.read(0xFF00 + fetchByte());
+            break;
+        }
+        case 0xF2: {
+            regs.a = memory.read(0xFF00 + regs.c);
+            break;
+        }
+        case 0xC5: {
+            push(regs.getBC());
+            break;
+        }
+        case 0xC1: {
+            regs.setBC(pop());
+            break;
+        }
+        case 0xD5: {
+            push(regs.getDE());
+            break;
+        }
+        case 0xD1: {
+            regs.setDE(pop());
+            break;
+        }
+        case 0xE5: {
+            push(regs.getHL());
+            break;
+        }
+        case 0xE1: {
+            regs.setHL(pop());
+            break;
+        }
+        case 0xF5: {
+            push(regs.getAF());
+            break;
+        }
+        case 0xF1: {
+            regs.setAF(pop());
+            break;
+        }
+        case 0xCD: {
+            uint16_t address = fetchWord();
+            push(regs.pc);
+            regs.pc = address;
+            break;
+        }
+        case 0xC9: {
+            regs.pc = pop();
+            break;
+        }
+        case 0x23: {
+            regs.setHL(regs.getHL() + 1);
+            break;
+        }
+        case 0x2B: {
+            regs.setHL(regs.getHL() - 1);
+            break;
+        }
+        case 0x03: {
+            regs.setBC(regs.getBC() + 1);
+            break;
+        }
+        case 0x0B: {
+            regs.setBC(regs.getBC() - 1);
+            break;
+        }
+        case 0x13: {
+            regs.setDE(regs.getDE() + 1);
+            break;
+        }
+        case 0x1B: {
+            regs.setDE(regs.getDE() - 1);
+            break;
+        }
+        case 0x33: {
+            regs.sp += 1;
+            break;
+        }
+        case 0x3B: {
+            regs.sp -= 1;
+            break;
+        }
         default: {
             std::cerr << std::hex << "Unimplemented opcode 0x"
             << static_cast<int>(opcode)
@@ -220,6 +363,123 @@ void CPU::setReg8(uint8_t index, uint8_t value) {
         default: {
             regs.a = value;
             break;
+        }
+    }
+}
+
+void CPU::push(uint16_t value) {
+    regs.sp -= 1;
+    memory.write(regs.sp, value >> 8);
+    regs.sp -= 1;
+    memory.write(regs.sp, value & 0xFF);
+}
+
+uint16_t CPU::pop() {
+    uint8_t low = memory.read(regs.sp);
+    regs.sp += 1;
+    uint8_t  high = memory.read(regs.sp);
+    regs.sp += 1;
+    return low | (high << 8);
+}
+
+void CPU::alu(uint8_t op, uint8_t value) {
+    switch (op) {
+        case 0: {
+            uint16_t sum = regs.a + value;
+            regs.setZ((sum & 0xFF) == 0);
+            regs.setN(false);
+            regs.setH(((regs.a & 0x0F) + (value & 0x0F)) > 0x0F);
+            regs.setC(sum > 0xFF);
+            regs.a = sum & 0xFF;
+            break;
+        }
+        case 1: {
+            uint8_t carry = 0;
+            if (regs.getC()) {
+                carry = 1;
+            }
+            uint16_t sum = regs.a + value + carry;
+            regs.setZ((sum & 0xFF) == 0);
+            regs.setN(false);
+            regs.setH(((regs.a & 0x0F) + (value & 0x0F) + carry) > 0x0F);
+            regs.setC(sum > 0xFF);
+            regs.a = sum & 0xFF;
+            break;
+        }
+        case 2: {
+            uint8_t result = regs.a - value;
+            regs.setZ(result == 0);
+            regs.setN(true);
+            regs.setH((regs.a  & 0x0F) < (value & 0x0F));
+            regs.setC(regs.a < value);
+            regs.a = result;
+            break;
+        }
+        case 3: {
+            uint8_t carry = 0;
+            if (regs.getC()) {
+                carry = 1;
+            }
+            uint8_t result = regs.a - value - carry;
+            regs.setZ(result == 0);
+            regs.setN(true);
+            regs.setH((regs.a & 0x0F) < ((value & 0x0F) + carry));
+            regs.setC(regs.a <  (value + carry));
+            regs.a = result;
+            break;
+        }
+        case 4: {
+            regs.a = regs.a & value;
+            regs.setZ(regs.a == 0);
+            regs.setN(false);
+            regs.setH(true);
+            regs.setC(false);
+            break;
+        }
+        case 5: {
+            regs.a = regs.a ^ value;
+            regs.setZ(regs.a == 0);
+            regs.setN(false);
+            regs.setH(false);
+            regs.setC(false);
+            break;
+        }
+        case 6: {
+            regs.a = regs.a | value;
+            regs.setZ(regs.a == 0);
+            regs.setN(false);
+            regs.setH(false);
+            regs.setC(false);
+            break;
+        }
+        case 7: {
+            uint8_t result = regs.a - value;
+            regs.setZ(result == 0);
+            regs.setN(true);
+            regs.setH((regs.a & 0x0F) < (value & 0x0F));
+            regs.setC(regs.a < value);
+            break;
+        }
+        default: {
+            std::cerr << "Unimplemented ALU op " << static_cast<int>(op) << std::endl;
+            std::exit(1);
+        }
+    }
+}
+
+bool CPU::condition(uint8_t cc) {
+    switch (cc) {
+        case 0: {
+            return !regs.getZ();
+        }
+        case 1: {
+            return regs.getZ();
+        }
+        case 2: {
+            return !regs.getC();
+        }
+        default: {
+            return regs.getC();
         }
     }
 }
