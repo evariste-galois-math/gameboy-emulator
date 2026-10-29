@@ -3,4 +3,6 @@ project(gameboy_emulator)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(gameboy_emulator main.cpp)
+add_executable(gameboy_emulator main.cpp
+        Registers.cpp
+        Registers.h)
