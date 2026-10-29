@@ -18,6 +18,18 @@ struct Registers {
 
     uint16_t sp = 0xFFFE;
     uint16_t pc = 0x0100;
+
+    uint16_t getBC() const;
+    void setBC(uint16_t value);
+
+    uint16_t getDE() const;
+    void setDE(uint16_t value);
+
+    uint16_t getHL() const;
+    void setHL(uint16_t value);
+
+    uint16_t getAF() const;
+    void setAF(uint16_t value);
 };
 
 #endif
