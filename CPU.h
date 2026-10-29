@@ -15,6 +15,9 @@ public:
 private:
     Memory& memory;
     uint8_t fetchByte();
+    uint16_t fetchWord();
+    uint8_t getReg8(uint8_t index);
+    void setReg8(uint8_t index, uint8_t value);
 };
 
 
