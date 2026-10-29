@@ -10,7 +10,9 @@ uint8_t Memory::read(uint16_t address) const {
 void Memory::write(uint16_t address, uint8_t value) {
     data[address] = value;
     if (address == 0xFF02 && value == 0x81) {
-        std::cout << static_cast<char>(data[0xFF01]) << std::flush;
+        char c = static_cast<char>(data[0xFF01]);
+        serialOutput += c;
+        std::cout << c << std::flush;
     }
 }
 

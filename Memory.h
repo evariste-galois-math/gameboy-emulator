@@ -10,6 +10,7 @@ public:
     uint8_t read(uint16_t address) const;
     void write(uint16_t address, uint8_t value);
     bool loadRom(const std::string& path);
+    std::string serialOutput;
 
 private:
     std::array<uint8_t, 0x10000> data{};
