@@ -31,7 +31,8 @@ void CPU::step() {
 
         default: {
             std::cerr << std::hex << "Unimplemented opcode 0x"
-            << static_cast<int>(opcode) << std::endl;
+            << static_cast<int>(opcode)
+            << " at 0x" << (regs.pc - 1) <<std::endl;
             std::exit(1);
         }
     }
