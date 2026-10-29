@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Registers.h"
+#include "Memory.h"
 
 int main() {
     Registers regs;
@@ -51,6 +52,14 @@ int main() {
 
     fresh.setN(true);
     std::cout << "f=" << static_cast<int>(fresh.f) << std::endl;
+
+    // Memory tests
+    Memory memory;
+    memory.write(0xC000, 0x42);
+    std::cout << "C000=" << static_cast<int>(memory.read(0xC000)) << std::endl;
+    std::cout << "C001=" << static_cast<int>(memory.read(0xC001)) << std::endl;
+    memory.write(0xFFFF, 0x01);
+    std::cout << "FFFF=" << static_cast<int>(memory.read(0xFFFF)) << std::endl;
 
     return 0;
 }

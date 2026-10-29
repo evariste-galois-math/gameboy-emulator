@@ -5,4 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(gameboy_emulator main.cpp
         Registers.cpp
-        Registers.h)
+        Registers.h
+        Memory.cpp
+        Memory.h)
