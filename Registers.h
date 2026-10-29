@@ -30,6 +30,18 @@ struct Registers {
 
     uint16_t getAF() const;
     void setAF(uint16_t value);
+
+    bool getZ() const;
+    void setZ(bool value);
+
+    bool getN() const;
+    void setN(bool value);
+
+    bool getH() const;
+    void setH(bool value);
+
+    bool getC() const;
+    void setC(bool value);
 };
 
 #endif

@@ -39,5 +39,18 @@ int main() {
               << " f=" << static_cast<int>(regs.f)
               << " AF=" << regs.getAF() << std::endl;
 
+    // Flag tests (fresh registers, so f starts at 0xB0)
+    Registers fresh;
+    std::cout << "Z=" << fresh.getZ()
+              << " N=" << fresh.getN()
+              << " H=" << fresh.getH()
+              << " C=" << fresh.getC() << std::endl;
+
+    fresh.setZ(false);
+    std::cout << "f=" << static_cast<int>(fresh.f) << std::endl;
+
+    fresh.setN(true);
+    std::cout << "f=" << static_cast<int>(fresh.f) << std::endl;
+
     return 0;
 }
