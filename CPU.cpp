@@ -93,6 +93,13 @@ void CPU::step() {
         }
         return;
     }
+
+    if ((opcode & 0xC7) == 0xC7) {
+        push(regs.pc);
+        regs.pc = opcode & 0x38;
+        return;
+    }
+
     switch (opcode) {
         case 0x00: {
             break;
@@ -292,6 +299,147 @@ void CPU::step() {
             regs.sp -= 1;
             break;
         }
+        case 0xCB: {
+            executeCB();
+            break;
+        }
+        case 0xE8: {
+            regs.sp = spPlusOffset();
+            break;
+        }
+        case 0xF8: {
+            regs.setHL(spPlusOffset());
+            break;
+        }
+        case 0xE9: {
+            regs.pc = regs.getHL();
+            break;
+        }
+        case 0xD9: {
+            regs.pc = pop();
+            ime = true;
+            break;
+        }
+        case 0x2F: {
+            regs.a = ~regs.a;
+            regs.setN(true);
+            regs.setH(true);
+            break;
+        }
+        case 0x37: {
+            regs.setN(false);
+            regs.setH(false);
+            regs.setC(true);
+            break;
+        }
+        case 0x3F: {
+            regs.setN(false);
+            regs.setH(false);
+            regs.setC(!regs.getC());
+            break;
+        }
+        case 0x27: {
+            bool carry = regs.getC();
+            if (!regs.getN()) {
+                if (regs.getC() || regs.a > 0x99) {
+                    regs.a += 0x60;
+                    carry = true;
+                }
+                if (regs.getH() || (regs.a & 0x0F) > 0x09) {
+                    regs.a += 0x06;
+                }
+            }
+            else {
+                if (regs.getC()) {
+                    regs.a -= 0x60;
+                }
+                if (regs.getH()) {
+                    regs.a -= 0x06;
+                }
+            }
+            regs.setZ(regs.a == 0);
+            regs.setH(false);
+            regs.setC(carry);
+            break;
+        }
+        case 0x76: {
+            std::cerr << "HALT reached: needs interrupts (graphics phase)" << std::endl;
+            std::exit(1);
+        }
+        case 0x10: {
+            fetchByte();
+            break;
+        }
+        case 0x07: {
+            bool carry = (regs.a & 0x80) != 0;
+            regs.a = (regs.a << 1) | (regs.a >> 7);
+            regs.setZ(false);
+            regs.setN(false);
+            regs.setH(false);
+            regs.setC(carry);
+            break;
+        }
+        case 0x0F: {
+            bool carry = (regs.a & 0x01) != 0;
+            regs.a = (regs.a >> 1) | (regs.a << 7);
+            regs.setZ(false);
+            regs.setN(false);
+            regs.setH(false);
+            regs.setC(carry);
+            break;
+        }
+        case 0x17: {
+            uint8_t oldCarry = 0;
+            if (regs.getC()) {
+                oldCarry = 1;
+            }
+            bool carry = (regs.a & 0x80) != 0;
+            regs.a = (regs.a << 1) | oldCarry;
+            regs.setZ(false);
+            regs.setN(false);
+            regs.setH(false);
+            regs.setC(carry);
+            break;
+        }
+        case 0x1F: {
+            uint8_t oldCarry = 0;
+            if (regs.getC()) {
+                oldCarry = 1;
+            }
+            bool carry = (regs.a & 0x01) != 0;
+            regs.a = (regs.a >> 1) | (oldCarry << 7);
+            regs.setZ(false);
+            regs.setN(false);
+            regs.setH(false);
+            regs.setC(carry);
+            break;
+        }
+        case 0x09: {
+            addHL(regs.getBC());
+            break;
+        }
+        case 0x19: {
+            addHL(regs.getDE());
+            break;
+        }
+        case 0x29: {
+            addHL(regs.getHL());
+            break;
+        }
+        case 0x39: {
+            addHL(regs.sp);
+            break;
+        }
+        case 0xF9: {
+            regs.sp = regs.getHL();
+            break;
+        }
+        case 0x08: {
+            uint16_t address = fetchWord();
+            memory.write(address, regs.sp & 0xFF);
+            memory.write(address + 1, regs.sp >> 8);
+            break;
+        }
         default: {
             std::cerr << std::hex << "Unimplemented opcode 0x"
             << static_cast<int>(opcode)
@@ -482,4 +630,109 @@ bool CPU::condition(uint8_t cc) {
             return regs.getC();
         }
     }
+}
+
+void CPU::executeCB() {
+    uint8_t cb = fetchByte();
+    uint8_t reg = cb & 0x07;
+    uint8_t bit = (cb >> 3) & 0x07;
+    uint8_t value = getReg8(reg);
+
+    if (cb >= 0x40 && cb <= 0x7F) {
+        regs.setZ((value & (1 << bit)) == 0);
+        regs.setN(false);
+        regs.setH(true);
+        return;
+    }
+
+    if (cb >= 0x80 && cb <= 0xBF) {
+        setReg8(reg, value & ~(1 << bit));
+        return;
+    }
+
+    if (cb >= 0xC0) {
+        setReg8(reg, value | (1 << bit));
+        return;
+    }
+
+    if (cb <= 0x3F) {
+        uint8_t oldCarry = 0;
+        if (regs.getC()) {
+            oldCarry = 1;
+        }
+        uint8_t result = 0;
+        bool carry = false;
+
+        switch (bit) {
+            case 0: {
+                carry = (value & 0x80) != 0;
+                result = (value << 1) | (value >> 7);
+                break;
+            }
+            case 1: {
+                carry = (value & 0x01) != 0;
+                result = (value >> 1) | (value << 7);
+                break;
+            }
+            case 2: {
+                carry = (value & 0x80) != 0;
+                result = (value << 1) | oldCarry;
+                break;
+            }
+            case 3: {
+                carry = (value & 0x01) != 0;
+                result = (value >> 1) | (oldCarry << 7);
+                break;
+            }
+            case 4: {
+                carry = (value & 0x80) != 0;
+                result = value << 1;
+                break;
+            }
+            case 5: {
+                carry = (value & 0x01) != 0;
+                result = (value >> 1) | (value & 0x80);
+                break;
+            }
+            case 6: {
+                carry = false;
+                result = (value << 4) | (value >> 4);
+                break;
+            }
+            case 7: {
+                carry = (value & 0x01) != 0;
+                result = value >> 1;
+                break;
+            }
+        }
+
+        setReg8(reg, result);
+        regs.setZ(result == 0);
+        regs.setN(false);
+        regs.setH(false);
+        regs.setC(carry);
+        return;
+    }
+    std::cerr << std::hex << "Unimplemented CB opcode 0x"
+    << static_cast<int>(cb) << std::endl;
+    std::exit(1);
+}
+
+void CPU::addHL(uint16_t value) {
+    uint16_t hl = regs.getHL();
+    uint32_t sum = hl + value;
+    regs.setN(false);
+    regs.setH((hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF);
+    regs.setC(sum > 0xFFFF);
+    regs.setHL(sum & 0xFFFF);
+}
+
+uint16_t CPU::spPlusOffset() {
+    uint8_t raw = fetchByte();
+    int8_t offset = static_cast<int8_t>(raw);
+    regs.setZ(false);
+    regs.setN(false);
+    regs.setH(((regs.sp & 0x0F) + (raw & 0x0F)) > 0x0F);
+    regs.setC(((regs.sp & 0xFF) + raw) > 0xFF);
+    return regs.sp + offset;
 }

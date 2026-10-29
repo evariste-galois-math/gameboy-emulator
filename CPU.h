@@ -23,6 +23,9 @@ private:
     uint16_t pop();
     void alu(uint8_t op, uint8_t value);
     bool condition(uint8_t cc);
+    void executeCB();
+    void addHL(uint16_t value);
+    uint16_t spPlusOffset();
 };
 
 
