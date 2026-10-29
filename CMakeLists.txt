@@ -7,4 +7,6 @@ add_executable(gameboy_emulator main.cpp
         Registers.cpp
         Registers.h
         Memory.cpp
-        Memory.h)
+        Memory.h
+        CPU.cpp
+        CPU.h)

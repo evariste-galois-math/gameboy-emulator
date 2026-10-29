@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Registers.h"
 #include "Memory.h"
+#include "CPU.h"
 
 int main() {
     Registers regs;
@@ -61,5 +62,18 @@ int main() {
     memory.write(0xFFFF, 0x01);
     std::cout << "FFFF=" << static_cast<int>(memory.read(0xFFFF)) << std::endl;
 
-    return 0;
+    // CPU test: a tiny program at 0x0100
+    Memory mem;
+    mem.write(0x0100, 0x00);
+    mem.write(0x0101, 0x06);
+    mem.write(0x0102, 0x42);
+    mem.write(0x0103, 0x78);
+
+    CPU cpu(mem);
+    for (int i = 0; i < 3; i++) {
+        cpu.step();
+        std::cout << "pc=" << cpu.regs.pc
+                  << " a=" << static_cast<int>(cpu.regs.a)
+                  << " b=" << static_cast<int>(cpu.regs.b) << std::endl;
+    }
 }
