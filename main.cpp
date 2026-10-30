@@ -7,55 +7,7 @@
 #include "Timer.h"
 #include <SDL.h>
 
-int runCpuTests() {
-    std::string folder = "/Users/galois/CLionProjects/gameboy-emulator/roms/cpu_instrs/individual/";
-
-    std::vector<std::string> tests = {
-        "01-special.gb",
-        "02-interrupts.gb",
-        "03-op sp,hl.gb",
-        "04-op r,imm.gb",
-        "05-op rp.gb",
-        "06-ld r,r.gb",
-        "07-jr,jp,call,ret,rst.gb",
-        "08-misc instrs.gb",
-        "09-op r,r.gb",
-        "10-bit ops.gb",
-        "11-op a,(hl).gb"
-    };
-
-    for (int i = 0; i < static_cast<int>(tests.size()); i++) {
-        Memory memory;
-        if (!memory.loadRom(folder + tests[i])) {
-            std::cerr << "Could not open " << tests[i] << std::endl;
-            continue;
-        }
-
-        CPU cpu(memory);
-        Timer timer(memory);
-
-        for (int steps = 0; steps < 30000000; steps++) {
-            cpu.step();
-            timer.tick(cpu.cycles);
-            if (steps % 10000 == 0) {
-                if (memory.serialOutput.find("Passed") != std::string::npos) {
-                    break;
-                }
-                if (memory.serialOutput.find("Failed") != std::string::npos) {
-                    break;
-                }
-            }
-        }
-
-        std::cout << std::endl << "----------" << std::endl;
-    }
-
-    return 0;
-}
-
 int main() {
-    return runCpuTests();
-
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
         return 1;
@@ -97,13 +49,13 @@ int main() {
         }
 
         int frameCycles = 0;
-        while (frameCycles < 70224) {
+        while (!ppu.frameReady && frameCycles < 80000) {
             cpu.step();
             timer.tick(cpu.cycles);
+            ppu.tick(cpu.cycles);
             frameCycles += cpu.cycles;
         }
-
-        ppu.renderFrame();
+        ppu.frameReady = false;
 
         SDL_UpdateTexture(texture, nullptr, ppu.framebuffer.data(), 160 * sizeof(uint32_t));
         SDL_RenderClear(renderer);

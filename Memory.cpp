@@ -16,6 +16,16 @@ void Memory::write(uint16_t address, uint8_t value) {
         data[0xFF04] = 0;
         return;
     }
+
+    if (address == 0xFF44) {
+        return;
+    }
+
+    if (address == 0xFF41) {
+        data[0xFF41] = (value & 0x78) | (data[0xFF41] & 0x07);
+        return;
+    }
+
     data[address] = value;
     if (address == 0xFF02 && value == 0x81) {
         char c = static_cast<char>(data[0xFF01]);

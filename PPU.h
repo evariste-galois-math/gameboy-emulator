@@ -9,12 +9,19 @@
 class PPU {
 public:
     PPU(Memory& memory);
-    void renderFrame();
+    void tick(int cycles);
 
     std::array<uint32_t, 160 * 144> framebuffer{};
+    bool frameReady = false;
 
 private:
     Memory& memory;
+    int dotCounter = 0;
+    int mode = 0;
+
+    void setMode(int newMode);
+    void checkLyc();
+    void renderScanline(int y);
 };
 
 #endif
