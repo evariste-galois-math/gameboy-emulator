@@ -18,10 +18,15 @@ private:
     Memory& memory;
     int dotCounter = 0;
     int mode = 0;
+    int windowLine = 0;
+    std::array<uint8_t, 160> lineBgIndex{};
 
+    void renderSprites(int y);
     void setMode(int newMode);
     void checkLyc();
     void renderScanline(int y);
+    uint8_t tilePixel(uint16_t mapBase, int px, int py, bool unsignedTiles);
+
 };
 
 #endif

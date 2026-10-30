@@ -31,7 +31,7 @@ int main() {
     );
 
     Memory memory;
-    if (!memory.loadRom("/Users/galois/CLionProjects/gameboy-emulator/roms/cpu_instrs/individual/06-ld r,r.gb")) {
+    if (!memory.loadRom("/Users/galois/CLionProjects/gameboy-emulator/roms/dmg-acid2.gb")) {
         std::cerr << "Could not open ROM" << std::endl;
         return 1;
     }
