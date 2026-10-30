@@ -37,6 +37,39 @@ uint16_t CPU::fetchWord() {
 }
 
 void CPU::step() {
+    if (eiDelay > 0) {
+        eiDelay--;
+        if (eiDelay == 0) {
+            ime = true;
+        }
+    }
+
+    uint8_t pending = memory.read(0xFFFF) & memory.read(0xFF0F) & 0x1F;
+
+    if (pending != 0) {
+        halted = false;
+        if (ime) {
+            for (int bit = 0; bit < 5; bit++) {
+                if ((pending & (1 << bit)) != 0) {
+                    ime = false;
+                    memory.write(0xFF0F, memory.read(0xFF0F) & ~(1 << bit));
+                    push(regs.pc);
+                    regs.pc = 0x40 + bit * 8;
+                    cycles = 20;
+                    return;
+                }
+            }
+        }
+    }
+
+    if (halted) {
+        cycles = 4;
+        return;
+    }
+
+    executeInstruction();
+}
+void CPU::executeInstruction() {
     uint8_t opcode = fetchByte();
     cycles = CYCLES[opcode];
     if (opcode >= 0x40 && opcode <= 0x7F && opcode != 0x76) {
@@ -222,10 +255,11 @@ void CPU::step() {
         }
         case 0xF3: {
             ime = false;
+            eiDelay = 0;
             break;
         }
         case 0xFB: {
-            ime = true;
+            eiDelay = 2;
             break;
         }
         case 0xEA: {
@@ -390,8 +424,8 @@ void CPU::step() {
             break;
         }
         case 0x76: {
-            std::cerr << "HALT reached: needs interrupts (graphics phase)" << std::endl;
-            std::exit(1);
+            halted = true;
+            break;
         }
         case 0x10: {
             fetchByte();

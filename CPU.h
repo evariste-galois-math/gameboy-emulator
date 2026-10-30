@@ -26,6 +26,9 @@ private:
     void executeCB();
     void addHL(uint16_t value);
     uint16_t spPlusOffset();
+    bool halted = false;
+    int eiDelay = 0;
+    void executeInstruction();
 };
 
 

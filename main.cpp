@@ -3,14 +3,16 @@
 #include <vector>
 #include "Memory.h"
 #include "CPU.h"
-#include <SDL.h>
 #include "PPU.h"
+#include "Timer.h"
+#include <SDL.h>
 
 int runCpuTests() {
     std::string folder = "/Users/galois/CLionProjects/gameboy-emulator/roms/cpu_instrs/individual/";
 
     std::vector<std::string> tests = {
         "01-special.gb",
+        "02-interrupts.gb",
         "03-op sp,hl.gb",
         "04-op r,imm.gb",
         "05-op rp.gb",
@@ -30,9 +32,11 @@ int runCpuTests() {
         }
 
         CPU cpu(memory);
+        Timer timer(memory);
 
         for (int steps = 0; steps < 30000000; steps++) {
             cpu.step();
+            timer.tick(cpu.cycles);
             if (steps % 10000 == 0) {
                 if (memory.serialOutput.find("Passed") != std::string::npos) {
                     break;
@@ -50,6 +54,8 @@ int runCpuTests() {
 }
 
 int main() {
+    return runCpuTests();
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
         return 1;
@@ -79,6 +85,7 @@ int main() {
     }
     CPU cpu(memory);
     PPU ppu(memory);
+    Timer timer(memory);
 
     bool running = true;
     while (running) {
@@ -92,6 +99,7 @@ int main() {
         int frameCycles = 0;
         while (frameCycles < 70224) {
             cpu.step();
+            timer.tick(cpu.cycles);
             frameCycles += cpu.cycles;
         }
 
