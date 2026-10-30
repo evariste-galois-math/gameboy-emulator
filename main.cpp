@@ -84,6 +84,12 @@ int main() {
                         memory.setButton(7, pressed);
                         break;
                     }
+                    case SDLK_p: {
+                        if (pressed) {
+                            ppu.paletteSet = (ppu.paletteSet + 1) % 3;
+                        }
+                        break;
+                    }
                     default: {
                         break;
                     }

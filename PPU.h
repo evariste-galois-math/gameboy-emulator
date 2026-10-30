@@ -13,6 +13,7 @@ public:
 
     std::array<uint32_t, 160 * 144> framebuffer{};
     bool frameReady = false;
+    int paletteSet = 0;
 
 private:
     Memory& memory;
