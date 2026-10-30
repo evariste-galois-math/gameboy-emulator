@@ -13,7 +13,9 @@ add_executable(gameboy_emulator main.cpp
         PPU.cpp
         PPU.h
         Timer.cpp
-        Timer.h)
+        Timer.h
+        Cartridge.cpp
+        Cartridge.h)
 
 list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
 find_package(SDL2 REQUIRED)
