@@ -9,7 +9,7 @@ class CPU {
 public:
     CPU(Memory& memory);
     void step();
-
+    int cycles = 0;
     Registers regs;
 
 private:

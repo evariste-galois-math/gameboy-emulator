@@ -2,6 +2,25 @@
 #include <iostream>
 #include <cstdlib>
 
+static const uint8_t CYCLES[256] = {
+    4, 12,  8,  8,  4,  4,  8,  4, 20,  8,  8,  8,  4,  4,  8,  4,
+    4, 12,  8,  8,  4,  4,  8,  4, 12,  8,  8,  8,  4,  4,  8,  4,
+    8, 12,  8,  8,  4,  4,  8,  4,  8,  8,  8,  8,  4,  4,  8,  4,
+    8, 12,  8,  8, 12, 12, 12,  4,  8,  8,  8,  8,  4,  4,  8,  4,
+    4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+    4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+    4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+    8,  8,  8,  8,  8,  8,  4,  8,  4,  4,  4,  4,  4,  4,  8,  4,
+    4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+    4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+    4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+    4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+    8, 12, 12, 16, 12, 16,  8, 16,  8, 16, 12,  0, 12, 24,  8, 16,
+    8, 12, 12,  0, 12, 16,  8, 16,  8, 16, 12,  0, 12,  0,  8, 16,
+    12, 12,  8,  0,  0, 16,  8, 16, 16,  4, 16,  0,  0,  0,  8, 16,
+    12, 12,  8,  4,  0, 16,  8, 16, 12,  8, 16,  4,  0,  0,  8, 16
+};
+
 CPU::CPU(Memory& memory) : memory(memory) {
 }
 
@@ -19,6 +38,7 @@ uint16_t CPU::fetchWord() {
 
 void CPU::step() {
     uint8_t opcode = fetchByte();
+    cycles = CYCLES[opcode];
     if (opcode >= 0x40 && opcode <= 0x7F && opcode != 0x76) {
         uint8_t dest = (opcode >> 3) & 0x07;
         uint8_t src = opcode & 0x07;
@@ -73,6 +93,7 @@ void CPU::step() {
         if (condition(cc)) {
             push(regs.pc);
             regs.pc = address;
+            cycles += 12;
         }
         return;
     }
@@ -82,6 +103,7 @@ void CPU::step() {
         uint16_t address = fetchWord();
         if (condition(cc)) {
             regs.pc = address;
+            cycles += 4;
         }
         return;
     }
@@ -90,6 +112,7 @@ void CPU::step() {
         uint8_t cc = (opcode >> 3) & 0x03;
         if (condition(cc)) {
             regs.pc = pop();
+            cycles += 12;
         }
         return;
     }
@@ -164,6 +187,7 @@ void CPU::step() {
             int8_t offset = static_cast<int8_t>(fetchByte());
             if (!regs.getZ()) {
                 regs.pc += offset;
+                cycles += 4;
             }
             break;
         }
@@ -176,6 +200,7 @@ void CPU::step() {
             int8_t offset = static_cast<int8_t>(fetchByte());
             if (regs.getZ()) {
                 regs.pc += offset;
+                cycles += 4;
             }
             break;
         }
@@ -183,6 +208,7 @@ void CPU::step() {
             int8_t offset = static_cast<int8_t>(fetchByte());
             if (!regs.getC()) {
                 regs.pc += offset;
+                cycles += 4;
             }
             break;
         }
@@ -190,6 +216,7 @@ void CPU::step() {
             int8_t offset = static_cast<int8_t>(fetchByte());
             if  (regs.getC()) {
                 regs.pc += offset;
+                cycles += 4;
             }
             break;
         }
@@ -637,6 +664,17 @@ void CPU::executeCB() {
     uint8_t reg = cb & 0x07;
     uint8_t bit = (cb >> 3) & 0x07;
     uint8_t value = getReg8(reg);
+    if (reg == 6) {
+        if (cb >= 0x40 && cb <= 0x7F) {
+            cycles = 12;
+        }
+        else {
+            cycles = 16;
+        }
+    }
+    else {
+        cycles = 8;
+    }
 
     if (cb >= 0x40 && cb <= 0x7F) {
         regs.setZ((value & (1 << bit)) == 0);
