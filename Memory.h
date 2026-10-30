@@ -15,7 +15,7 @@ public:
     void requestInterrupt(int bit);
     bool loadRom(const std::string& path);
     void setButton(int key, bool pressed);
-
+    void saveGame();
     std::string serialOutput;
 
 private:

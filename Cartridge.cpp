@@ -43,7 +43,15 @@ bool Cartridge::load(const std::string& path) {
     }
 
     ram.resize(ramSize);
+    savePath = path.substr(0, path.find_last_of('.')) + ".sav";
+    if (!ram.empty()) {
+        std::ifstream save(savePath, std::ios::binary);
+        if (save) {
+            save.read(reinterpret_cast<char*>(ram.data()), ram.size());
+            std::cout << "Loaded save: " << savePath << std::endl;
+        }
 
+    }
     std::cout << "Cartridge type 0x" << std::hex << static_cast<int>(type)
     << std::dec << ", ROM " << size / 1024 << " KB"
     << ", RAM " << ramSize / 1024 << " KB" << std::endl;
@@ -96,3 +104,10 @@ void Cartridge::write(uint16_t address, uint8_t value) {
     }
 }
 
+void Cartridge::saveRam() const {
+    if (ram.empty()) {
+        return;
+    }
+    std::ofstream save(savePath, std::ios::binary);
+    save.write(reinterpret_cast<const char*>(ram.data()), ram.size());
+}

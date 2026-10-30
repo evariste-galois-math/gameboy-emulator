@@ -11,6 +11,7 @@ public:
     bool load(const std::string& path);
     uint8_t read(uint16_t address) const;
     void write(uint16_t address, uint8_t value);
+    void saveRam() const;
 
 private:
     std::vector<uint8_t> rom;
@@ -19,6 +20,7 @@ private:
     int romBank = 1;
     int ramBank = 0;
     bool ramEnabled = false;
+    std::string savePath;
 };
 
 

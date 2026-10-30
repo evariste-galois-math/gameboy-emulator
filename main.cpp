@@ -8,6 +8,8 @@
 #include <SDL.h>
 
 int main() {
+    std::string romPath = "/Users/galois/CLionProjects/gameboy-emulator/roms/pokemon-red.gb";
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
         return 1;
@@ -31,14 +33,15 @@ int main() {
     );
 
     Memory memory;
-    if (!memory.loadRom("/Users/galois/CLionProjects/gameboy-emulator/roms/2048.gb")) {
-        std::cerr << "Could not open ROM" << std::endl;
+    if (!memory.loadRom(romPath)) {
+        std::cerr << "Could not open ROM: " << romPath << std::endl;
         return 1;
     }
     CPU cpu(memory);
     PPU ppu(memory);
     Timer timer(memory);
 
+    int frameCount = 0;
     bool running = true;
     while (running) {
         SDL_Event event;
@@ -103,7 +106,14 @@ int main() {
         SDL_RenderPresent(renderer);
 
         SDL_Delay(16);
+
+        frameCount += 1;
+        if (frameCount % 300 == 0) {
+            memory.saveGame();
+        }
     }
+
+    memory.saveGame();
 
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);

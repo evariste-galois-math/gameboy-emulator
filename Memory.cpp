@@ -119,3 +119,7 @@ void Memory::setButton(int key, bool pressed) {
         requestInterrupt(4);
     }
 }
+
+void Memory::saveGame() {
+    cartridge.saveRam();
+}
