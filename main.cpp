@@ -5,12 +5,13 @@
 #include "CPU.h"
 #include "PPU.h"
 #include "Timer.h"
+#include "APU.h"
 #include <SDL.h>
 
 int main() {
     std::string romPath = "/Users/galois/CLionProjects/gameboy-emulator/roms/pokemon-red.gb";
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
         return 1;
     }
@@ -32,6 +33,14 @@ int main() {
         144
     );
 
+    SDL_AudioSpec want{};
+    want.freq = 48000;
+    want.format = AUDIO_F32;
+    want.channels = 2;
+    want.samples = 1024;
+    SDL_AudioDeviceID audioDevice = SDL_OpenAudioDevice(nullptr, 0, &want, nullptr, 0);
+    SDL_PauseAudioDevice(audioDevice, 0);
+
     Memory memory;
     if (!memory.loadRom(romPath)) {
         std::cerr << "Could not open ROM: " << romPath << std::endl;
@@ -40,6 +49,7 @@ int main() {
     CPU cpu(memory);
     PPU ppu(memory);
     Timer timer(memory);
+    APU apu(memory);
 
     int frameCount = 0;
     bool running = true;
@@ -102,6 +112,7 @@ int main() {
             cpu.step();
             timer.tick(cpu.cycles);
             ppu.tick(cpu.cycles);
+            apu.tick(cpu.cycles);
             frameCycles += cpu.cycles;
         }
         ppu.frameReady = false;
@@ -111,7 +122,11 @@ int main() {
         SDL_RenderCopy(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
 
-        SDL_Delay(16);
+        SDL_QueueAudio(audioDevice, apu.samples.data(), apu.samples.size() * sizeof(float));
+        apu.samples.clear();
+        while (SDL_GetQueuedAudioSize(audioDevice) > 4096 * sizeof(float)) {
+            SDL_Delay(1);
+        }
 
         frameCount += 1;
         if (frameCount % 300 == 0) {
@@ -121,6 +136,7 @@ int main() {
 
     memory.saveGame();
 
+    SDL_CloseAudioDevice(audioDevice);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

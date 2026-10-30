@@ -4,6 +4,9 @@
 Memory::Memory() {
     data[0xFF40] = 0x91;
     data[0xFF47] = 0xFC;
+    data[0xFF24] = 0x77;
+    data[0xFF25] = 0xF3;
+    data[0xFF26] = 0xF1;
 }
 
 uint8_t Memory::read(uint16_t address) const {
@@ -77,6 +80,19 @@ void Memory::write(uint16_t address, uint8_t value) {
     }
 
     data[address] = value;
+
+    if ((value & 0x80) != 0) {
+        if (address == 0xFF14) {
+            soundTrigger[0] = true;
+        } else if (address == 0xFF19) {
+            soundTrigger[1] = true;
+        } else if (address == 0xFF1E) {
+            soundTrigger[2] = true;
+        } else if (address == 0xFF23) {
+            soundTrigger[3] = true;
+        }
+    }
+
     if (address == 0xFF02 && value == 0x81) {
         char c = static_cast<char>(data[0xFF01]);
         serialOutput += c;

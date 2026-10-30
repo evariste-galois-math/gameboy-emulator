@@ -17,6 +17,7 @@ public:
     void setButton(int key, bool pressed);
     void saveGame();
     std::string serialOutput;
+    bool soundTrigger[4] = {};
 
 private:
     std::array<uint8_t, 0x10000> data{};
