@@ -8,6 +8,19 @@ Memory::Memory() {
 }
 
 uint8_t Memory::read(uint16_t address) const {
+    if (address == 0xFF00) {
+        uint8_t select = data[0xFF00] & 0x30;
+        uint8_t result = 0xC0 | select | 0x0F;
+        if ((select & 0x10) == 0) {
+            result = result & (0xF0 | dpad);
+        }
+        if ((select & 0x20) == 0) {
+            result = result & (0xF0 | buttons);
+        }
+
+        return result;
+    }
+
     return data[address];
 }
 
@@ -36,6 +49,11 @@ void Memory::write(uint16_t address, uint8_t value) {
         return;
     }
 
+    if (address == 0xFF00) {
+        data[0xFF00] = value & 0x30;
+        return;
+    }
+
     data[address] = value;
     if (address == 0xFF02 && value == 0x81) {
         char c = static_cast<char>(data[0xFF01]);
@@ -60,5 +78,29 @@ bool Memory::loadRom(const std::string& path) {
     else {
         file.read(reinterpret_cast<char*>(data.data()), 0x8000);
         return true;
+    }
+}
+
+void Memory::setButton(int key, bool pressed) {
+    if (key < 4) {
+        if (pressed) {
+            dpad = dpad & ~(1 << key);
+        }
+        else {
+            dpad = dpad | (1 << key);
+        }
+    }
+    else {
+        int bit = key - 4;
+        if (pressed) {
+            buttons = buttons & ~(1 << bit);
+        }
+        else {
+            buttons = buttons | (1 << bit);
+        }
+    }
+
+    if (pressed) {
+        requestInterrupt(4);
     }
 }

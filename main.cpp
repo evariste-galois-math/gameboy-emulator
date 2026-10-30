@@ -31,7 +31,7 @@ int main() {
     );
 
     Memory memory;
-    if (!memory.loadRom("/Users/galois/CLionProjects/gameboy-emulator/roms/dmg-acid2.gb")) {
+    if (!memory.loadRom("/Users/galois/CLionProjects/gameboy-emulator/roms/2048.gb")) {
         std::cerr << "Could not open ROM" << std::endl;
         return 1;
     }
@@ -45,6 +45,46 @@ int main() {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
+            }
+            if ((event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) && event.key.repeat == 0) {
+                bool pressed = (event.type == SDL_KEYDOWN);
+                switch (event.key.keysym.sym) {
+                    case SDLK_RIGHT: {
+                        memory.setButton(0, pressed);
+                        break;
+                    }
+                    case SDLK_LEFT: {
+                        memory.setButton(1, pressed);
+                        break;
+                    }
+                    case SDLK_UP: {
+                        memory.setButton(2, pressed);
+                        break;
+                    }
+                    case SDLK_DOWN: {
+                        memory.setButton(3, pressed);
+                        break;
+                    }
+                    case SDLK_x: {
+                        memory.setButton(4, pressed);
+                        break;
+                    }
+                    case SDLK_z: {
+                        memory.setButton(5, pressed);
+                        break;
+                    }
+                    case SDLK_BACKSPACE: {
+                        memory.setButton(6, pressed);
+                        break;
+                    }
+                    case SDLK_RETURN: {
+                        memory.setButton(7, pressed);
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
             }
         }
 
