@@ -10,3 +10,7 @@ add_executable(gameboy_emulator main.cpp
         Memory.h
         CPU.cpp
         CPU.h)
+
+list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
+find_package(SDL2 REQUIRED)
+target_link_libraries(gameboy_emulator SDL2::SDL2)
