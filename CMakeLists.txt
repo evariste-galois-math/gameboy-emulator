@@ -9,7 +9,9 @@ add_executable(gameboy_emulator main.cpp
         Memory.cpp
         Memory.h
         CPU.cpp
-        CPU.h)
+        CPU.h
+        PPU.cpp
+        PPU.h)
 
 list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
 find_package(SDL2 REQUIRED)

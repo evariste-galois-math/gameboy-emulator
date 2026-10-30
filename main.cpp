@@ -4,6 +4,7 @@
 #include "Memory.h"
 #include "CPU.h"
 #include <SDL.h>
+#include "PPU.h"
 
 int runCpuTests() {
     std::string folder = "/Users/galois/CLionProjects/gameboy-emulator/roms/cpu_instrs/individual/";
@@ -62,12 +63,22 @@ int main() {
         144 * 4,
         0
     );
-    if (window == nullptr) {
-        std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << std::endl;
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Texture* texture = SDL_CreateTexture(
+        renderer,
+        SDL_PIXELFORMAT_ARGB8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        160,
+        144
+    );
+
+    Memory memory;
+    if (!memory.loadRom("/Users/galois/CLionProjects/gameboy-emulator/roms/cpu_instrs/individual/06-ld r,r.gb")) {
+        std::cerr << "Could not open ROM" << std::endl;
         return 1;
     }
-
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    CPU cpu(memory);
+    PPU ppu(memory);
 
     bool running = true;
     while (running) {
@@ -78,13 +89,23 @@ int main() {
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 0x9B, 0xBC, 0x0F, 255);
+        int frameCycles = 0;
+        while (frameCycles < 70224) {
+            cpu.step();
+            frameCycles += cpu.cycles;
+        }
+
+        ppu.renderFrame();
+
+        SDL_UpdateTexture(texture, nullptr, ppu.framebuffer.data(), 160 * sizeof(uint32_t));
         SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
 
         SDL_Delay(16);
     }
 
+    SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

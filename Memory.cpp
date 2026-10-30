@@ -2,6 +2,10 @@
 #include "Memory.h"
 #include <fstream>
 #include <iostream>
+Memory::Memory() {
+    data[0xFF40] = 0x91;
+    data[0xFF47] = 0xFC;
+}
 
 uint8_t Memory::read(uint16_t address) const {
     return data[address];
