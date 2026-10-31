@@ -24,9 +24,19 @@ void APU::tick(int cycles) {
         memory.soundTrigger[1] = false;
         triggerSquare(ch2, 0xFF16);
     }
+    if (memory.soundTrigger[2]) {
+        memory.soundTrigger[2] = false;
+        triggerWave();
+    }
+    if (memory.soundTrigger[3]) {
+        memory.soundTrigger[3] = false;
+        triggerNoise();
+    }
 
     stepSquare(ch1, 0xFF11, cycles);
     stepSquare(ch2, 0xFF16, cycles);
+    stepWave(cycles);
+    stepNoise(cycles);
 
     frameSequencerCounter += cycles;
     while (frameSequencerCounter >= 8192) {
@@ -34,6 +44,8 @@ void APU::tick(int cycles) {
         if (frameSequencerStep % 2 == 0) {
             clockLength(ch1, 0xFF11);
             clockLength(ch2, 0xFF16);
+            clockWaveLength();
+            clockLength(ch4, 0xFF20);
         }
         if (frameSequencerStep == 2 || frameSequencerStep == 6) {
             clockSweep();
@@ -41,6 +53,7 @@ void APU::tick(int cycles) {
         if (frameSequencerStep == 7) {
             clockEnvelope(ch1, 0xFF11);
             clockEnvelope(ch2, 0xFF16);
+            clockEnvelope(ch4, 0xFF20);
         }
         frameSequencerStep = (frameSequencerStep + 1) % 8;
     }
@@ -58,6 +71,9 @@ void APU::tick(int cycles) {
         if (powered) {
             float out1 = squareOutput(ch1, 0xFF11) / 15.0f;
             float out2 = squareOutput(ch2, 0xFF16) / 15.0f;
+            float out3 = waveOutput() / 15.0f;
+            float out4 = noiseOutput() / 15.0f;
+
             if ((nr51 & 0x10) != 0) {
                 left += out1;
             }
@@ -70,6 +86,19 @@ void APU::tick(int cycles) {
             if ((nr51 & 0x02) != 0) {
                 right += out2;
             }
+            if ((nr51 & 0x40) != 0) {
+                left += out3;
+            }
+            if ((nr51 & 0x04) != 0) {
+                right += out3;
+            }
+            if ((nr51 & 0x80) != 0) {
+                left += out4;
+            }
+            if ((nr51 & 0x08) != 0) {
+                right += out4;
+            }
+
             left = left * (((nr50 >> 4) & 0x07) + 1) / 32.0f;
             right = right * ((nr50 & 0x07) + 1) / 32.0f;
         }
@@ -201,4 +230,98 @@ void APU::clockSweep() {
         memory.writeRaw(0xFF14, (memory.read(0xFF14) & 0xF8) | (newFrequency >> 8));
         sweepCalculate();
     }
+}
+
+void APU::triggerWave() {
+    uint8_t nr30 = memory.read(0xFF1A);
+    uint8_t nr31 = memory.read(0xFF1B);
+    ch3.enabled = (nr30 & 0x80) != 0;
+    ch3.lengthCounter = 256 - nr31;
+    ch3.position = 0;
+    int frequency = memory.read(0xFF1D) | ((memory.read(0xFF1E) & 0x07) << 8);
+    ch3.timer = (2048 - frequency) * 2;
+}
+
+void APU::stepWave(int cycles) {
+    int frequency = memory.read(0xFF1D) | ((memory.read(0xFF1E) & 0x07) << 8);
+    int period = (2048 - frequency) * 2;
+    ch3.timer -= cycles;
+    while (ch3.timer <= 0) {
+        ch3.timer += period;
+        ch3.position = (ch3.position + 1) % 32;
+    }
+}
+
+void APU::clockWaveLength() {
+    bool lengthEnabled = (memory.read(0xFF1E) & 0x40) != 0;
+    if (lengthEnabled && ch3.lengthCounter > 0) {
+        ch3.lengthCounter -= 1;
+        if (ch3.lengthCounter == 0) {
+            ch3.enabled = false;
+        }
+    }
+}
+
+int APU::waveOutput() {
+    if ((memory.read(0xFF1A) & 0x80) == 0) {
+        ch3.enabled = false;
+    }
+    if (!ch3.enabled) {
+        return 0;
+    }
+    uint8_t waveByte = memory.read(0xFF30 + ch3.position / 2);
+    int sample = 0;
+    if (ch3.position % 2 == 0) {
+        sample = waveByte >> 4;
+    } else {
+        sample = waveByte & 0x0F;
+    }
+    int volumeCode = (memory.read(0xFF1C) >> 5) & 0x03;
+    if (volumeCode == 0) {
+        return 0;
+    }
+    return sample >> (volumeCode - 1);
+}
+
+void APU::triggerNoise() {
+    triggerSquare(ch4, 0xFF20);
+    ch4.lfsr = 0x7FFF;
+    ch4.timer = noisePeriod();
+}
+
+int APU::noisePeriod() {
+    uint8_t nr43 = memory.read(0xFF22);
+    int shift = nr43 >> 4;
+    int code = nr43 & 0x07;
+    int divisor = 8;
+    if (code != 0) {
+        divisor = code * 16;
+    }
+    return divisor << shift;
+}
+
+void APU::stepNoise(int cycles) {
+    int period = noisePeriod();
+    ch4.timer -= cycles;
+    while (ch4.timer <= 0) {
+        ch4.timer += period;
+        int xorBit = (ch4.lfsr & 0x01) ^ ((ch4.lfsr >> 1) & 0x01);
+        ch4.lfsr = (ch4.lfsr >> 1) | (xorBit << 14);
+        if ((memory.read(0xFF22) & 0x08) != 0) {
+            ch4.lfsr = (ch4.lfsr & ~0x40) | (xorBit << 6);
+        }
+    }
+}
+
+int APU::noiseOutput() {
+    if ((memory.read(0xFF21) & 0xF8) == 0) {
+        ch4.enabled = false;
+    }
+    if (!ch4.enabled) {
+        return 0;
+    }
+    if ((ch4.lfsr & 0x01) == 0) {
+        return ch4.volume;
+    }
+    return 0;
 }
