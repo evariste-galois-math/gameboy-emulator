@@ -133,7 +133,7 @@ void PPU::renderScanline(int y) {
         }
         lineBgIndex[x] = colorIndex;
         uint8_t shade = (bgp >> (colorIndex * 2)) & 0x03;
-        framebuffer[y * 160 + x] = PALETTES[paletteSet][0][shade];
+        framebuffer[y * 160 + x] = pickColor(x, y, 0, shade);
     }
 
     if (windowUsed) {
@@ -249,6 +249,13 @@ void PPU::renderSprites(int y) {
             layer = 2;
         }
         uint8_t shade = (palette >> (ownerColor[x] * 2)) & 0x03;
-        framebuffer[y * 160 + x] = PALETTES[paletteSet][layer][shade];
+        framebuffer[y * 160 + x] = pickColor(x, y, layer, shade);
     }
+}
+
+uint32_t PPU::pickColor(int x, int y, int layer, uint8_t shade) {
+    if (paletteSet == 3) {
+        return memory.sgb.color(x, y, shade);
+    }
+    return PALETTES[paletteSet][layer][shade];
 }

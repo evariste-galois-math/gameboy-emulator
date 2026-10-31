@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include "Cartridge.h"
+#include "SGB.h"
 
 class Memory {
 public:
@@ -16,8 +17,10 @@ public:
     bool loadRom(const std::string& path);
     void setButton(int key, bool pressed);
     void saveGame();
+
     std::string serialOutput;
     bool soundTrigger[4] = {};
+    SGB sgb;
 
 private:
     std::array<uint8_t, 0x10000> data{};

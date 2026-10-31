@@ -32,6 +32,9 @@ uint8_t Memory::read(uint16_t address) const {
         if ((select & 0x20) == 0) {
             result = result & (0xF0 | buttons);
         }
+        if (select == 0x30) {
+            result = 0xF0 | sgb.joypadId();
+        }
         return result;
     }
 
@@ -76,6 +79,7 @@ void Memory::write(uint16_t address, uint8_t value) {
     }
     if (address == 0xFF00) {
         data[0xFF00] = value & 0x30;
+        sgb.write(value, *this);
         return;
     }
 

@@ -1,7 +1,6 @@
-
-
 #ifndef GAMEBOY_EMULATOR_PPU_H
 #define GAMEBOY_EMULATOR_PPU_H
+
 #include <array>
 #include <cstdint>
 #include "Memory.h"
@@ -13,7 +12,7 @@ public:
 
     std::array<uint32_t, 160 * 144> framebuffer{};
     bool frameReady = false;
-    int paletteSet = 0;
+    int paletteSet = 3;
 
 private:
     Memory& memory;
@@ -23,11 +22,11 @@ private:
     std::array<uint8_t, 160> lineBgIndex{};
 
     void renderSprites(int y);
+    uint32_t pickColor(int x, int y, int layer, uint8_t shade);
     void setMode(int newMode);
     void checkLyc();
     void renderScanline(int y);
     uint8_t tilePixel(uint16_t mapBase, int px, int py, bool unsignedTiles);
-
 };
 
 #endif

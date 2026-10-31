@@ -16,22 +16,9 @@ int main() {
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow(
-        "Game Boy",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        160 * 4,
-        144 * 4,
-        0
-    );
+    SDL_Window* window = SDL_CreateWindow("Game Boy", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 160 * 4, 144 * 4, 0);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    SDL_Texture* texture = SDL_CreateTexture(
-        renderer,
-        SDL_PIXELFORMAT_ARGB8888,
-        SDL_TEXTUREACCESS_STREAMING,
-        160,
-        144
-    );
+    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
 
     SDL_AudioSpec want{};
     want.freq = 48000;
@@ -46,6 +33,7 @@ int main() {
         std::cerr << "Could not open ROM: " << romPath << std::endl;
         return 1;
     }
+
     CPU cpu(memory);
     PPU ppu(memory);
     Timer timer(memory);
@@ -60,48 +48,35 @@ int main() {
                 running = false;
             }
             if ((event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) && event.key.repeat == 0) {
-                bool pressed = (event.type == SDL_KEYDOWN);
-                switch (event.key.keysym.sym) {
-                    case SDLK_RIGHT: {
-                        memory.setButton(0, pressed);
-                        break;
-                    }
-                    case SDLK_LEFT: {
-                        memory.setButton(1, pressed);
-                        break;
-                    }
-                    case SDLK_UP: {
-                        memory.setButton(2, pressed);
-                        break;
-                    }
-                    case SDLK_DOWN: {
-                        memory.setButton(3, pressed);
-                        break;
-                    }
-                    case SDLK_x: {
-                        memory.setButton(4, pressed);
-                        break;
-                    }
-                    case SDLK_z: {
-                        memory.setButton(5, pressed);
-                        break;
-                    }
-                    case SDLK_BACKSPACE: {
-                        memory.setButton(6, pressed);
-                        break;
-                    }
-                    case SDLK_RETURN: {
-                        memory.setButton(7, pressed);
-                        break;
-                    }
-                    case SDLK_p: {
-                        if (pressed) {
-                            ppu.paletteSet = (ppu.paletteSet + 1) % 3;
-                        }
-                        break;
-                    }
-                    default: {
-                        break;
+                bool pressed = event.type == SDL_KEYDOWN;
+                SDL_Keycode key = event.key.keysym.sym;
+                if (key == SDLK_RIGHT) {
+                    memory.setButton(0, pressed);
+                }
+                if (key == SDLK_LEFT) {
+                    memory.setButton(1, pressed);
+                }
+                if (key == SDLK_UP) {
+                    memory.setButton(2, pressed);
+                }
+                if (key == SDLK_DOWN) {
+                    memory.setButton(3, pressed);
+                }
+                if (key == SDLK_x) {
+                    memory.setButton(4, pressed);
+                }
+                if (key == SDLK_z) {
+                    memory.setButton(5, pressed);
+                }
+                if (key == SDLK_BACKSPACE) {
+                    memory.setButton(6, pressed);
+                }
+                if (key == SDLK_RETURN) {
+                    memory.setButton(7, pressed);
+                }
+                if (key == SDLK_p) {
+                    if (pressed) {
+                        ppu.paletteSet = (ppu.paletteSet + 1) % 4;
                     }
                 }
             }
@@ -117,7 +92,9 @@ int main() {
         }
         ppu.frameReady = false;
 
-        SDL_UpdateTexture(texture, nullptr, ppu.framebuffer.data(), 160 * sizeof(uint32_t));
+        if (memory.sgb.mask == 0) {
+            SDL_UpdateTexture(texture, nullptr, ppu.framebuffer.data(), 160 * sizeof(uint32_t));
+        }
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
@@ -135,7 +112,6 @@ int main() {
     }
 
     memory.saveGame();
-
     SDL_CloseAudioDevice(audioDevice);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
