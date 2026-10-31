@@ -12,7 +12,6 @@ public:
 
     std::array<uint32_t, 160 * 144> framebuffer{};
     bool frameReady = false;
-    int paletteSet = 3;
 
 private:
     Memory& memory;
@@ -22,7 +21,6 @@ private:
     std::array<uint8_t, 160> lineBgIndex{};
 
     void renderSprites(int y);
-    uint32_t pickColor(int x, int y, int layer, uint8_t shade);
     void setMode(int newMode);
     void checkLyc();
     void renderScanline(int y);

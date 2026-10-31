@@ -1,23 +1,5 @@
 #include "PPU.h"
 
-static const uint32_t PALETTES[3][3][4] = {
-    {
-        {0xFFE0F8D0, 0xFF88C070, 0xFF346856, 0xFF081820},
-        {0xFFE0F8D0, 0xFF88C070, 0xFF346856, 0xFF081820},
-        {0xFFE0F8D0, 0xFF88C070, 0xFF346856, 0xFF081820}
-    },
-    {
-            {0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000},
-            {0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000},
-            {0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000}
-    },
-    {
-            {0xFFFFFFFF, 0xFFFF8484, 0xFF943A3A, 0xFF000000},
-            {0xFFFFFFFF, 0xFF63A5FF, 0xFF0000FF, 0xFF000000},
-            {0xFFFFFFFF, 0xFFFF8484, 0xFF943A3A, 0xFF000000}
-    }
-};
-
 PPU::PPU(Memory& memory) : memory(memory) {
 }
 
@@ -133,7 +115,7 @@ void PPU::renderScanline(int y) {
         }
         lineBgIndex[x] = colorIndex;
         uint8_t shade = (bgp >> (colorIndex * 2)) & 0x03;
-        framebuffer[y * 160 + x] = pickColor(x, y, 0, shade);
+        framebuffer[y * 160 + x] = memory.sgb.color(x, y, shade);
     }
 
     if (windowUsed) {
@@ -243,19 +225,10 @@ void PPU::renderSprites(int y) {
         }
 
         uint8_t palette = obp0;
-        int layer = 1;
         if ((ownerFlags[x] & 0x10) != 0) {
             palette = obp1;
-            layer = 2;
         }
         uint8_t shade = (palette >> (ownerColor[x] * 2)) & 0x03;
-        framebuffer[y * 160 + x] = pickColor(x, y, layer, shade);
+        framebuffer[y * 160 + x] = memory.sgb.color(x, y, shade);
     }
-}
-
-uint32_t PPU::pickColor(int x, int y, int layer, uint8_t shade) {
-    if (paletteSet == 3) {
-        return memory.sgb.color(x, y, shade);
-    }
-    return PALETTES[paletteSet][layer][shade];
 }

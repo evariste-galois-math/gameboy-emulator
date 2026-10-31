@@ -74,11 +74,6 @@ int main() {
                 if (key == SDLK_RETURN) {
                     memory.setButton(7, pressed);
                 }
-                if (key == SDLK_p) {
-                    if (pressed) {
-                        ppu.paletteSet = (ppu.paletteSet + 1) % 4;
-                    }
-                }
             }
         }
 
